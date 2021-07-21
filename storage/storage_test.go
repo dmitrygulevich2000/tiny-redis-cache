@@ -16,7 +16,7 @@ var (
 )
 
 func TestNoTTL(t *testing.T) {
-	data := New()
+	data := New(0)
 	defer data.Close()
 
 	data.Set("key", "val1", zeroDuration)
@@ -47,7 +47,7 @@ func TestNoTTL(t *testing.T) {
 }
 
 func TestWithTTL(t *testing.T) {
-	data := New()
+	data := New(0)
 	defer data.Close()
 
 	data.Set("key", "val", defaultTTL)
@@ -75,7 +75,7 @@ func TestWithTTL(t *testing.T) {
 }
 
 func TestDeleteManyKeys(t *testing.T) {
-	data := New()
+	data := New(0)
 	defer data.Close()
 
 	data.Set("key1", "val", zeroDuration)
@@ -135,7 +135,7 @@ func TestKeys(t *testing.T) {
 	}
 	
 	for num, c:= range tests {
-		data := New()
+		data := New(0)
 
 		for i, key := range c.Keys {
 			data.Set(key, "val", c.Ttls[i])
@@ -169,7 +169,7 @@ func TestKeys(t *testing.T) {
 }
 
 func TestActiveExpiration(t *testing.T) {
-	data := New()
+	data := New(0)
 	defer data.Close()
 
 	data.Set("key", "val", defaultTTL)
@@ -186,7 +186,7 @@ func TestConcurrentAccess(t *testing.T) {
 	kIters := 100
 	wg := &sync.WaitGroup{}
 
-	data := New()
+	data := New(0)
 	defer data.Close()
 
 	for i := 0; i < kKeys; i += 1 {
@@ -224,7 +224,7 @@ func BenchmarkConcurrentAccess(b *testing.B) {
 	kIters := 100
 
 	for i := 0; i < b.N; i++ {
-		data := New()
+		data := New(0)
 		wg := &sync.WaitGroup{}
 		
 		for i := 0; i < kKeys; i += 1 {

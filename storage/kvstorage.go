@@ -23,13 +23,16 @@ type KVStorage struct {
 	resolution time.Duration
 }
 
-func New() *KVStorage {
+func New(res time.Duration) *KVStorage {
 	storage := &KVStorage{
 		data: make(map[string]interface{}, initialSize),
 		expires: make(map[string]time.Time, initialSize),
 		
 		done: make(chan struct{}, 0),
 		resolution: defaultResolution,
+	}
+	if res > 0 {
+		storage.resolution = res
 	}
 
 	go storage.expirationChecker()
