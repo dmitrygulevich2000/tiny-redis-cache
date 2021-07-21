@@ -105,39 +105,66 @@ func TestDeleteManyKeys(t *testing.T) {
 	}
 }
 
+type KeysTestCase struct {
+	Pattern string
+	Keys []string
+	Ttls []time.Duration
+	ExpectedResult []string
+}
+
 func TestKeys(t *testing.T) {
-	pattern := "h*llo"
-	keys := []string{"hello", "hllo", "hxxxllo", "llo", "hlo"}
-	ttls := []time.Duration{defaultTTL, 2*defaultSleep, zeroDuration, zeroDuration, zeroDuration}
-	expectedResult := []string{"hllo", "hxxxllo"}  // i also add ttl for "hello" key
-
-	data := New()
-	defer data.Close()
-
-	for i, key := range keys {
-		data.Set(key, "val", ttls[i])
+	tests := []KeysTestCase {
+		KeysTestCase {
+			Pattern: "h*llo",
+			Keys: []string{"hello", "hllo", "hxxxllo", "llo", "hlo"},
+			Ttls: []time.Duration{defaultTTL, 2*defaultSleep, zeroDuration, zeroDuration, zeroDuration},
+			ExpectedResult: []string{"hllo", "hxxxllo"},  // i also add ttl for "hello" key
+		},
+		KeysTestCase {
+			Pattern: "h[ae]llo",
+			Keys: []string{"hello", "hallo", "hxllo", "hllo", "allo"},
+			Ttls: []time.Duration{zeroDuration, zeroDuration, zeroDuration, zeroDuration, zeroDuration},
+			ExpectedResult: []string{"hallo", "hello"},
+		},
+		KeysTestCase {
+			Pattern: "example.com/*",
+			Keys: []string{"example.com/", "exampleacom/", "example.com/user", "example.com////"},
+			Ttls: []time.Duration{zeroDuration, zeroDuration, zeroDuration, zeroDuration, zeroDuration},
+			ExpectedResult: []string{"example.com/", "example.com/user"},
+		},
 	}
-	time.Sleep(defaultSleep)
+	
+	for num, c:= range tests {
+		data := New()
 
-	result, err := data.Keys(pattern)
-	if err != nil {
-		t.Fatalf("Keys: unexpected error %s", err.Error())
-	}
-	sort.Slice(result, func (i,j int) bool {return result[i] < result[j]})
+		for i, key := range c.Keys {
+			data.Set(key, "val", c.Ttls[i])
+		}
+		time.Sleep(defaultSleep)
 
-	success := true
-	if len(result) != len(expectedResult) {
-		success = false
-	} else {
-		for i, _ := range result {
-			if result[i] != expectedResult[i] {
-				success = false
+		result, err := data.Keys(c.Pattern)
+		if err != nil {
+			t.Errorf("TestCase %d: Keys: unexpected error %s", num, err.Error())
+			break
+		}
+		sort.Slice(result, func (i,j int) bool {return result[i] < result[j]})
+
+		success := true
+		if len(result) != len(c.ExpectedResult) {
+			success = false
+		} else {
+			for i, _ := range result {
+				if result[i] != c.ExpectedResult[i] {
+					success = false
+				}
 			}
 		}
-	}
 
-	if !success {
-		t.Fatalf("Keys: expected %v\ngot %v", expectedResult, result)
+		if !success {
+			t.Errorf("TestCase %d: Keys: expected %v\ngot %v", num, c.ExpectedResult, result)
+		}
+
+		data.Close()
 	}
 }
 
