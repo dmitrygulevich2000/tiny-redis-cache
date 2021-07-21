@@ -2,6 +2,7 @@ package storage
 
 import (
 	"runtime"
+	"sort"
 	"strconv"
 	"sync"
 	"testing"
@@ -11,11 +12,12 @@ import (
 var (
 	zeroDuration time.Duration
 	defaultTTL = 500*time.Microsecond
-	defaultSleep = time.Millisecond
+	defaultSleep = 2*defaultTTL
 )
 
 func TestNoTTL(t *testing.T) {
 	data := New()
+	defer data.Close()
 
 	data.Set("key", "val1", zeroDuration)
 	val, _ := data.Get("key")
@@ -46,6 +48,7 @@ func TestNoTTL(t *testing.T) {
 
 func TestWithTTL(t *testing.T) {
 	data := New()
+	defer data.Close()
 
 	data.Set("key", "val", defaultTTL)
 	val, _ := data.Get("key")
@@ -73,6 +76,7 @@ func TestWithTTL(t *testing.T) {
 
 func TestDeleteManyKeys(t *testing.T) {
 	data := New()
+	defer data.Close()
 
 	data.Set("key1", "val", zeroDuration)
 	data.Set("key2", "val", zeroDuration)
@@ -101,12 +105,62 @@ func TestDeleteManyKeys(t *testing.T) {
 	}
 }
 
-func TestConcurrent(t *testing.T) {
+func TestKeys(t *testing.T) {
+	pattern := "h*llo"
+	keys := []string{"hello", "hllo", "hxxxllo", "llo", "hlo"}
+	ttls := []time.Duration{defaultTTL, 2*defaultSleep, zeroDuration, zeroDuration, zeroDuration}
+	expectedResult := []string{"hllo", "hxxxllo"}  // i also add ttl for "hello" key
+
+	data := New()
+	defer data.Close()
+
+	for i, key := range keys {
+		data.Set(key, "val", ttls[i])
+	}
+	time.Sleep(defaultSleep)
+
+	result, err := data.Keys(pattern)
+	if err != nil {
+		t.Fatalf("Keys: unexpected error %s", err.Error())
+	}
+	sort.Slice(result, func (i,j int) bool {return result[i] < result[j]})
+
+	success := true
+	if len(result) != len(expectedResult) {
+		success = false
+	} else {
+		for i, _ := range result {
+			if result[i] != expectedResult[i] {
+				success = false
+			}
+		}
+	}
+
+	if !success {
+		t.Fatalf("Keys: expected %v\ngot %v", expectedResult, result)
+	}
+}
+
+func TestActiveExpiration(t *testing.T) {
+	data := New()
+	defer data.Close()
+
+	data.Set("key", "val", defaultTTL)
+	time.Sleep(2 * data.resolution)
+
+	size := len(data.data)
+	if size == 1 {
+		t.Fatalf("Expected zero size of the underlying map, got %d\n", size)
+	}
+}
+
+func TestConcurrentAccess(t *testing.T) {
 	kKeys := 10
 	kIters := 100
 	wg := &sync.WaitGroup{}
 
 	data := New()
+	defer data.Close()
 
 	for i := 0; i < kKeys; i += 1 {
 		key := "key" + strconv.Itoa(i)
@@ -138,7 +192,7 @@ func TestConcurrent(t *testing.T) {
 }
 
 
-func BenchmarkConcurrent(b *testing.B) {
+func BenchmarkConcurrentAccess(b *testing.B) {
 	kKeys := 10
 	kIters := 100
 
@@ -163,5 +217,6 @@ func BenchmarkConcurrent(b *testing.B) {
 		}
 	
 		wg.Wait()
+		data.Close()
     }
 }
