@@ -11,27 +11,56 @@ import (
 )
 
 func ApiExample(api client.ClientAPI) {
-	ires, err := api.Set("K", "V", 0)
+	var (
+		resString string
+		resISlice []interface{}
+		resInt int
+	)
+
+	ires, err := api.Set("K", "V", time.Second)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	res := ires.(string)
-	fmt.Printf("SET result: %s\n", res)
+	resString = ires.(string)
+	fmt.Printf("SET(\"K\", \"V\", 1s) result: %s\n", resString)
+
+	ires, err = api.Get("K")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	resString = ires.(string)
+	fmt.Printf("GET(\"K\") result: %s\n", resString)
+
+	ires, err = api.Set("KK", []string{"a", "b"}, 0)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	resString = ires.(string)
+	fmt.Printf("SET(\"KK\", [\"a\", \"b\"], 0) result: %s\n", resString)
+
+	ires, err = api.Get("KK")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	resISlice = ires.([]interface{})
+	fmt.Printf("GET(\"KK\") result: %#v\n", resISlice)
+
+
+	fmt.Println("Sleepping 1s...")
+	time.Sleep(time.Second)
 
 
 	ires, err = api.Get("K")
 	if err != nil {
 		log.Fatalln(err)
 	}
-	res = ires.(string)
-	fmt.Printf("GET result: %s\n", res)
+	fmt.Printf("GET(\"K\") result: %#v\n", ires)
 
-
-	deleted, err := api.Del("K", "KK")
+	resInt, err = api.Del("K", "KK")
 	if err != nil {
 		log.Fatalln(err)
 	}
-	fmt.Printf("DEL result: %d\n", deleted)
+	fmt.Printf("DEL(\"K\", \"KK\", \"KKK\") result: %d\n", resInt)
 }
 
 func main() {
