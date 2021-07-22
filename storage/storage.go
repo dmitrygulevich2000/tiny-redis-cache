@@ -7,24 +7,22 @@ import (
 	"time"
 )
 
+type Storage interface {
+	Set(key string, value interface{}, ttl time.Duration)
+	Get(key string) (interface{}, bool)
+	Delete(keys ...string) int
+	Keys(pattern string) ([]string, error)
+
+	Close()
+}
+
 var (
 	initialSize = 16
 	defaultResolution = time.Second
 )
 
-
-type KVStorage struct {
-	data map[string]interface{}
-	expires map[string]time.Time
-	
-	mutex sync.RWMutex
-	done chan struct{}
-
-	resolution time.Duration
-}
-
-func New(res time.Duration) *KVStorage {
-	storage := &KVStorage{
+func New(res time.Duration) Storage {
+	storage := &kvStorage{
 		data: make(map[string]interface{}, initialSize),
 		expires: make(map[string]time.Time, initialSize),
 		
@@ -39,7 +37,18 @@ func New(res time.Duration) *KVStorage {
 	return storage
 }
 
-func (s *KVStorage) Close() {
+// kvStorage implements Storage interface
+type kvStorage struct {
+	data map[string]interface{}
+	expires map[string]time.Time
+	
+	mutex sync.RWMutex
+	done chan struct{}
+
+	resolution time.Duration
+}
+
+func (s *kvStorage) Close() {
 	close(s.done)
 
 	s.mutex.Lock()
@@ -48,12 +57,13 @@ func (s *KVStorage) Close() {
 	s.mutex.Unlock()
 }
 
-func (s *KVStorage) Closed() bool {
+func (s *kvStorage) closed() bool {
 	return s.data == nil
 }
 
-func (s *KVStorage) Set(key string, value interface{}, ttl time.Duration) {
-	if s.Closed() {
+// non-positive ttl treated as no ttl
+func (s *kvStorage) Set(key string, value interface{}, ttl time.Duration) {
+	if s.closed() {
 		panic("Set over closed storage")
 	}
 
@@ -68,8 +78,8 @@ func (s *KVStorage) Set(key string, value interface{}, ttl time.Duration) {
 	}
 }
 
-func (s *KVStorage) Delete(keys ...string) int {
-	if s.Closed() {
+func (s *kvStorage) Delete(keys ...string) int {
+	if s.closed() {
 		panic("Delete over closed storage")
 	}
 	
@@ -94,7 +104,7 @@ func (s *KVStorage) Delete(keys ...string) int {
 	return kDeleted
 }
 
-func (s *KVStorage) cleanup(key string) (deleted bool) {
+func (s *kvStorage) cleanup(key string) (deleted bool) {
 	deleted = false
 	
 	s.mutex.Lock()
@@ -111,8 +121,8 @@ func (s *KVStorage) cleanup(key string) (deleted bool) {
 	return
 }
 
-func (s *KVStorage) Get(key string) (interface{}, bool) {
-	if s.Closed() {
+func (s *kvStorage) Get(key string) (interface{}, bool) {
+	if s.closed() {
 		panic("Get over closed storage")
 	}
 	
@@ -136,8 +146,8 @@ func (s *KVStorage) Get(key string) (interface{}, bool) {
 }
 
 // now works incorrectly
-func (s *KVStorage) Keys(pattern string) ([]string, error) {
-	if s.Closed() {
+func (s *kvStorage) Keys(pattern string) ([]string, error) {
+	if s.closed() {
 		panic("Keys over closed storage")
 	}
 	
@@ -167,7 +177,7 @@ func (s *KVStorage) Keys(pattern string) ([]string, error) {
 	return result, nil
 }
 
-func (s *KVStorage) cleanupAll() {
+func (s *kvStorage) cleanupAll() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -179,7 +189,7 @@ func (s *KVStorage) cleanupAll() {
 	}
 }
 
-func (s *KVStorage) expirationChecker() {
+func (s *kvStorage) expirationChecker() {
 	ticker := time.NewTicker(s.resolution)
 
 	for {

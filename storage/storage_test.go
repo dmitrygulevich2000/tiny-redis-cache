@@ -169,7 +169,8 @@ func TestKeys(t *testing.T) {
 }
 
 func TestActiveExpiration(t *testing.T) {
-	data := New(0)
+	idata := New(0)
+	data := idata.(*kvStorage)
 	defer data.Close()
 
 	data.Set("key", "val", defaultTTL)

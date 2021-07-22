@@ -1,30 +1,16 @@
 package api
 
 import (
-	"github.com/dmitrygulevich2000/tiny-redis-cache/storage"
-	
-	"encoding/json"
 	"errors"
-	"net/http"
 	"time"
 )
 
-type Api struct {
-	Data *storage.KVStorage
-}
-
-func New() *Api {
-	return &Api{
-		Data: storage.New(0),
-	}
-}
-
-type Error struct {
+type ErrorResponse struct {
 	Op string
 	Err string
 }
 
-func (e *Error) Error() string {
+func (e *ErrorResponse) Error() string {
 	return e.Op + ": " + e.Err
 }
 
@@ -48,34 +34,6 @@ func ValidateSetParams(p *SetParams) error {
 	return nil
 }
 
-func (api *Api) HandleSet(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Use POST method to access api", http.StatusMethodNotAllowed)
-		return
-	}
-	
-	enc := json.NewDecoder(r.Body)
-	params := new(SetParams)
-	errJSON := enc.Decode(params)
-	errString := ""
-	if errJSON != nil {
-		errString = errJSON.Error()
-	}
-	if err := ValidateSetParams(params); err != nil {
-		errString = err.Error()
-	}
-	if errString != "" {
-		w.WriteHeader(http.StatusBadRequest)
-		err := Error{"SET", errString}
-		resp, _ := json.Marshal(err)
-		w.Write(resp)
-		return
-	}
-
-	api.Data.Set(params.Key, params.Value, params.Ttl)
-	w.Write([]byte(`"OK"`))
-}
-
 
 type GetParams struct {
 	Key string
@@ -86,44 +44,6 @@ func ValidateGetParams(p *GetParams) error {
 		return errors.New("key argument must be specified")
 	}
 	return nil
-}
-
-func (api *Api) HandleGet(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Use POST method to access api", http.StatusMethodNotAllowed)
-		return
-	}
-
-	enc := json.NewDecoder(r.Body)
-	params := new(GetParams)
-	errJSON := enc.Decode(params)
-	errString := ""
-	if errJSON != nil {
-		errString = errJSON.Error()
-	}
-	if err := ValidateGetParams(params); err != nil {
-		errString = err.Error()
-	}
-	if errString != "" {
-		w.WriteHeader(http.StatusBadRequest)
-		err := Error{"GET", errString}
-		resp, _ := json.Marshal(err)
-		w.Write(resp)
-		return
-	}
-	
-	val, exists := api.Data.Get(params.Key)
-	if !exists {
-		w.Write([]byte("null"))
-		return
-	}
-
-	resp, err := json.Marshal(val)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	w.Write(resp)
 }
 
 
@@ -138,36 +58,3 @@ func ValidateDelParams(p *DelParams) error {
 	return nil
 }
 
-func (api *Api) HandleDel(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Use POST method to access api", http.StatusMethodNotAllowed)
-		return
-	}
-
-	enc := json.NewDecoder(r.Body)
-	params := new(DelParams)
-	errJSON := enc.Decode(params)
-	errString := ""
-	if errJSON != nil {
-		errString = errJSON.Error()
-	}
-	if err := ValidateDelParams(params); err != nil {
-		errString = err.Error()
-	}
-	if errString != "" {
-		w.WriteHeader(http.StatusBadRequest)
-		err := Error{"DEL", errString}
-		resp, _ := json.Marshal(err)
-		w.Write(resp)
-		return
-	}
-	
-	deleted := api.Data.Delete(params.Keys...)
-
-	resp, err := json.Marshal(deleted)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	w.Write(resp)
-}
