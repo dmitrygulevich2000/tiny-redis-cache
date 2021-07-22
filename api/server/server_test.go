@@ -1,8 +1,8 @@
 package server
 
 import (
-	"io"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -48,6 +48,7 @@ func TestCorrectScenario(t *testing.T) {
 		setUrl = srv.URL + "/set"
 		getUrl = srv.URL + "/get"
 		delUrl = srv.URL + "/del"
+		// keysUrl = srv.URL + "/keys"
 		h = "application/json"
 	)
 	var (
@@ -102,8 +103,20 @@ func TestCorrectScenario(t *testing.T) {
 		t.Fatalf("Expected string in JSON, got:\n%s", string(body))
 	}
 	if !reflect.DeepEqual(resSlice, []string{"a", "b"}) {
-		t.Fatalf("Expected response: [\"a\", \"b\"], got %s\n", resString)
+		t.Fatalf("Expected response: [\"KK\"], got %#v\n", resSlice)
 	}
+
+	// // keys("K?")
+	// resp, _ = c.Post(keysUrl, h, strings.NewReader(`{"Pattern": "K?"}`))
+	// body, _ = io.ReadAll(resp.Body)
+	// resp.Body.Close()
+	// err = json.Unmarshal(body, &resSlice)
+	// if err != nil {
+	// 	t.Fatalf("Expected string in JSON, got:\n%s", string(body))
+	// }
+	// if !reflect.DeepEqual(resSlice, []string{"KK"}) {
+	// 	t.Fatalf("Expected response: [\"a\", \"b\"], got %#v\n", resSlice)
+	// }
 
 	// wait expiration of key "K" (first op)
 	time.Sleep(time.Second)
@@ -121,7 +134,7 @@ func TestCorrectScenario(t *testing.T) {
 	}
 
 	// del("K", "KK", "KKK")
-	resp, _ = c.Post(delUrl, h, strings.NewReader(`{"Keys": ["K", "KK", "KK"]}`))
+	resp, _ = c.Post(delUrl, h, strings.NewReader(`{"Keys": ["K", "KK", "KKK"]}`))
 	body, _ = io.ReadAll(resp.Body)
 	resp.Body.Close()
 	err = json.Unmarshal(body, &resInt)

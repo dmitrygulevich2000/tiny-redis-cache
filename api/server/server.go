@@ -21,6 +21,7 @@ func New() *CacheServer {
 	srv.Mux.HandleFunc("/set", srv.HandleSet)
 	srv.Mux.HandleFunc("/get", srv.HandleGet)
 	srv.Mux.HandleFunc("/del", srv.HandleDel)
+	srv.Mux.HandleFunc("/keys", srv.HandleKeys)
 
 	return srv
 }
@@ -122,6 +123,44 @@ func (srv *CacheServer) HandleDel(w http.ResponseWriter, r *http.Request) {
 	deleted := srv.Data.Delete(params.Keys...)
 
 	resp, err := json.Marshal(deleted)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.Write(resp)
+}
+
+func (srv *CacheServer) HandleKeys(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Use POST method to access api", http.StatusMethodNotAllowed)
+		return
+	}
+
+	enc := json.NewDecoder(r.Body)
+	params := new(api.KeysParams)
+	errJSON := enc.Decode(params)
+	errString := ""
+	if errJSON != nil {
+		errString = errJSON.Error()
+	}
+	if err := api.ValidateKeysParams(params); err != nil {
+		errString = err.Error()
+	}
+	if errString != "" {
+		w.WriteHeader(http.StatusBadRequest)
+		err := api.ErrorResponse{"KEYS", errString}
+		resp, _ := json.Marshal(err)
+		w.Write(resp)
+		return
+	}
+	
+	val, err := srv.Data.Keys(params.Pattern)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	resp, err := json.Marshal(val)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

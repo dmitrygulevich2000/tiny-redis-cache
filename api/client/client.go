@@ -74,7 +74,7 @@ type ClientAPI interface {
 	Set(key string, value interface{}, ttl time.Duration) (interface{}, error)
 	Get(key string) (interface{}, error)
 	Del(keys ...string) (int, error)
-	// Keys(pattern string) ([]string, error)
+	Keys(pattern string) ([]string, error)
 }
 
 func NewAPI(c Client) ClientAPI {
@@ -161,5 +161,30 @@ func (h *httpAPI) Del(keys ...string) (int, error) {
 	}
 
 	var result int
+	return result, json.Unmarshal(body, &result)
+}
+
+func (h *httpAPI) Keys(pattern string) ([]string, error) {
+	params := &api.KeysParams {
+		Pattern: pattern,
+	}
+	reqBody, err := json.Marshal(params) 
+	if err != nil {
+		return nil, err
+	}
+
+	url := h.client.URL("/keys")
+	req, err := http.NewRequest(http.MethodPost, url.String(), bytes.NewReader(reqBody))
+	if err != nil {
+		return nil, err
+	}
+	req.Header["Content-Type"] = []string{"application/json"}
+
+	_, body, err := h.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	var result []string
 	return result, json.Unmarshal(body, &result)
 }

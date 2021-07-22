@@ -58,3 +58,14 @@ func ValidateDelParams(p *DelParams) error {
 	return nil
 }
 
+
+type KeysParams struct {
+	Pattern string
+}
+
+func ValidateKeysParams(p *KeysParams) error {
+	if p.Pattern == "" {
+		return errors.New("pattern argument must be specified")
+	}
+	return nil
+}
