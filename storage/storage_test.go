@@ -176,7 +176,9 @@ func TestActiveExpiration(t *testing.T) {
 	data.Set("key", "val", defaultTTL)
 	time.Sleep(2 * data.resolution)
 
+	data.mutex.RLock()
 	size := len(data.data)
+	data.mutex.RUnlock()
 	if size == 1 {
 		t.Fatalf("Expected zero size of the underlying map, got %d\n", size)
 	}
