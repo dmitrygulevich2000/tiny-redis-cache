@@ -69,6 +69,8 @@ func (c *httpClient) Do(r *http.Request) (*http.Response, []byte, error) {
 }
 
 
+//TODO: add more context to errors
+
 type ClientAPI interface {
 	// return value: "OK"
 	Set(key string, value interface{}, ttl time.Duration) (interface{}, error)

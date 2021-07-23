@@ -118,7 +118,7 @@ func TestKeys(t *testing.T) {
 			Pattern: "h*llo",
 			Keys: []string{"hello", "hllo", "hxxxllo", "llo", "hlo"},
 			Ttls: []time.Duration{defaultTTL, 2*defaultSleep, zeroDuration, zeroDuration, zeroDuration},
-			ExpectedResult: []string{"hllo", "hxxxllo"},  // i also add ttl for "hello" key
+			ExpectedResult: []string{"hllo", "hxxxllo"},  // there is ttl for "hello" key
 		},
 		KeysTestCase {
 			Pattern: "h[ae]llo",
