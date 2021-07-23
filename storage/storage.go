@@ -2,7 +2,7 @@ package storage
 
 import (
 	_ "fmt"
-	"regexp"
+	_ "regexp"
 	"sync"
 	"time"
 )
@@ -150,12 +150,7 @@ func (s *kvStorage) Keys(pattern string) ([]string, error) {
 	if s.closed() {
 		panic("Keys over closed storage")
 	}
-	
-	expr, err := regexp.Compile(pattern)
-	if err != nil {
-		return nil, err
-	}
-	expr.Longest()
+
 	result := make([]string, 0)
 
 	s.mutex.RLock()
@@ -166,7 +161,7 @@ func (s *kvStorage) Keys(pattern string) ([]string, error) {
 		
 		if !exists || time.Now().Before(expires) { // not expired
 			
-			if match := expr.FindString(key); len(match) == len(key) {
+			if Match(key, pattern) {
 				result = append(result, key)
 			} // else skip
 		} else {  // expired
@@ -203,4 +198,83 @@ func (s *kvStorage) expirationChecker() {
 			}
 		}
 	}
+}
+
+func Match(str, pattern string) bool {
+	if str == "" {
+		return pattern == "" || pattern == "*"
+	} else if pattern == "" {
+		return false
+	}
+	
+	pPos := 0
+	p := []rune(pattern)
+	for i, r := range str {
+		if pPos == len(p) {
+			return false
+		}
+		switch p[pPos] {
+		case '?':
+			pPos += 1
+		case '*':
+			return Match(str[i:], pattern[pPos + 1:]) || Match(str[i + 1:], pattern[pPos:])
+		case '[':
+			pPos += 1
+			ban := false
+			if p[pPos] == '^' {
+				pPos += 1
+				ban = true
+			}
+			
+			anyMatched := false
+			for p[pPos] != ']' {
+				if pPos >= len(p) {
+					panic("Wrong Pattern: missing closing \"]\"")
+				}
+				if p[pPos] == '\\' {
+					pPos += 1
+					if p[pPos] == r {
+						anyMatched = true
+					}
+				} else {
+					if p[pPos] == '-' {
+						prevRune := p[pPos - 1]
+						nextRune := p[pPos + 1]
+						if nextRune == '\\' {
+							nextRune = p[pPos + 2]
+							pPos += 1
+						}
+						if prevRune <= r && r <= nextRune {
+							anyMatched = true
+						}
+						pPos += 1
+					} else {
+						if p[pPos] == r {
+							anyMatched = true
+						}
+					}
+				}
+
+				pPos += 1
+			
+			}
+			if (!anyMatched && !ban) || (anyMatched && ban) {
+				return false
+			}
+			pPos += 1
+		case '\\':
+			// must simply compare next symbols as is
+			pPos += 1
+			fallthrough
+
+		default:
+			if r != p[pPos] {
+				return false
+			}
+			pPos += 1
+		}
+	}
+
+
+	return Match("", pattern[pPos:])
 }
