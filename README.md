@@ -1,7 +1,7 @@
 # tiny-redis-cache
 Проект представляет собой реализацию прототипа in-memory хранилища, доступ к которому осуществляется через REST API.  
-Поддерживаемые операции: SET(с возможностью установки Time To Live), GET, DEL.  
-На данный момент пока не успел корректно реализовать операцию KEYS, это видно на тестах.  
+За основу взят api проекта redis. Поддерживаемые операции: SET(с возможностью установки Time To Live), GET, DEL, KEYS.  
+*(Не смог найти стандартных функций, работающих с glob-паттернами, поэтому написал свою реализацию - постарался как следует покрыть тестами)*  
 
 Сборка и запуск кэш-сервера:
 
@@ -14,7 +14,7 @@ go build -o tmp/cache-server cmd/apiserver.go
 
 ```
 go build -o tmp/client_example cmd/apiclient_example.go
-./tmp/client_example localhost:<server-port>
+./tmp/client_example <server-host>:<server-port>
 ```
 
 ---
