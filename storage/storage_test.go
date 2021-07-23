@@ -139,10 +139,28 @@ func TestKeys(t *testing.T) {
 			ExpectedResult: []string{"hallo", "hbllo", "hcllo"},
 		},
 		KeysTestCase {
+			Pattern: "h[^a-c]llo",
+			Keys: []string{"hallo", "hbllo", "hcllo", "hllo", "hhllo", "allo"},
+			Ttls: []time.Duration{zeroDuration, zeroDuration, zeroDuration, zeroDuration, zeroDuration, zeroDuration},
+			ExpectedResult: []string{"hhllo"},
+		},
+		KeysTestCase {
+			Pattern: `h[\^\]\\]llo`,
+			Keys: []string{"h\\llo", "h^llo", "h]llo", "hllo", "hhllo", "allo"},
+			Ttls: []time.Duration{zeroDuration, zeroDuration, zeroDuration, zeroDuration, zeroDuration, zeroDuration},
+			ExpectedResult: []string{"h\\llo", "h]llo", "h^llo"},
+		},
+		KeysTestCase {
 			Pattern: "example.com/*",
 			Keys: []string{"example.com/", "exampleacom/", "example.com/user", "example.com////"},
 			Ttls: []time.Duration{zeroDuration, zeroDuration, zeroDuration, zeroDuration, zeroDuration},
-			ExpectedResult: []string{"example.com/", "example.com/user"},
+			ExpectedResult: []string{"example.com/", "example.com////", "example.com/user"},
+		},
+		KeysTestCase {
+			Pattern: "K?",
+			Keys: []string{"K", "KK", "KKK"},
+			Ttls: []time.Duration{zeroDuration, zeroDuration, zeroDuration},
+			ExpectedResult: []string{"KK"},
 		},
 	}
 	

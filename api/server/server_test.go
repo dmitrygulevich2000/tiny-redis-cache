@@ -48,7 +48,7 @@ func TestCorrectScenario(t *testing.T) {
 		setUrl = srv.URL + "/set"
 		getUrl = srv.URL + "/get"
 		delUrl = srv.URL + "/del"
-		// keysUrl = srv.URL + "/keys"
+		keysUrl = srv.URL + "/keys"
 		h = "application/json"
 	)
 	var (
@@ -106,17 +106,17 @@ func TestCorrectScenario(t *testing.T) {
 		t.Fatalf("Expected response: [\"KK\"], got %#v\n", resSlice)
 	}
 
-	// // keys("K?")
-	// resp, _ = c.Post(keysUrl, h, strings.NewReader(`{"Pattern": "K?"}`))
-	// body, _ = io.ReadAll(resp.Body)
-	// resp.Body.Close()
-	// err = json.Unmarshal(body, &resSlice)
-	// if err != nil {
-	// 	t.Fatalf("Expected string in JSON, got:\n%s", string(body))
-	// }
-	// if !reflect.DeepEqual(resSlice, []string{"KK"}) {
-	// 	t.Fatalf("Expected response: [\"a\", \"b\"], got %#v\n", resSlice)
-	// }
+	// keys("K?")
+	resp, _ = c.Post(keysUrl, h, strings.NewReader(`{"Pattern": "K?"}`))
+	body, _ = io.ReadAll(resp.Body)
+	resp.Body.Close()
+	err = json.Unmarshal(body, &resSlice)
+	if err != nil {
+		t.Fatalf("Expected string in JSON, got:\n%s", string(body))
+	}
+	if !reflect.DeepEqual(resSlice, []string{"KK"}) {
+		t.Fatalf("Expected response: [\"KK\"], got %#v\n", resSlice)
+	}
 
 	// wait expiration of key "K" (first op)
 	time.Sleep(time.Second)
